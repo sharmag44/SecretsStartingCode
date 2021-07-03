@@ -4,6 +4,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const encrypt = require("mongoose-encryption");
 const Port = process.env.port || 3000;
 
 app.use(express.static("public"));
@@ -13,10 +14,13 @@ mongoose.connect("mongodb://localhost:27017/userDB", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-const userSchema = {
+const userSchema = new mongoose.Schema({
   username: String,
   password: String,
-};
+});
+
+const secret = "This is Little secret.";
+userSchema.plugin(encrypt, { secret: secret, encryptedFields: ["password"] });
 const User = mongoose.model("User", userSchema);
 
 app.get("/", (req, res) => {
@@ -30,9 +34,9 @@ app.get("/register", function (req, res) {
   res.render("register");
 });
 app.post("/register", function (req, res) {
-    const newUser = new User({
+  const newUser = new User({
     username: req.body.username,
-    password = req.body.password
+    password: req.body.password,
   });
   newUser.save(function (err) {
     if (err) {
@@ -44,20 +48,15 @@ app.post("/register", function (req, res) {
 });
 
 app.post("/login", function (req, res) {
-  User.findOne(
-    { username: req.body.username },
-    function (err, foundUser) {
-      if (foundUser) {
-        if(foundUser.password === req.body.password){
-          res.render("secrets");
-        }
-        
-      } else {
-        
-        console.log(err);
+  User.findOne({ username: req.body.username }, function (err, foundUser) {
+    if (foundUser) {
+      if (foundUser.password === req.body.password) {
+        res.render("secrets");
       }
+    } else {
+      console.log(err);
     }
-  );
+  });
 });
 
 app.listen(Port, function () {
