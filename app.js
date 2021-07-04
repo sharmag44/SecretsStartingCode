@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 const encrypt = require("mongoose-encryption");
+const md5 = require("md5");
 const Port = process.env.port || 3000;
 
 app.use(express.static("public"));
@@ -20,21 +21,6 @@ const userSchema = new mongoose.Schema({
   password: String,
 });
 
-userSchema.plugin(encrypt, {
-  secret: process.env.MY_SECRET,
-  encryptedFields: ["password"],
-});
-
-// var encKey = process.env.SOME_32BYTE_BASE64_STRING;
-// var sigKey = process.env.SOME_64BYTE_BASE64_STRING;
-// var secret = process.env.SECRET;
-
-// userSchema.plugin(encrypt, {
-//   secret: secret,
-//   encryptionKey: encKey,
-//   signingKey: sigKey,
-//   encryptedFields: ["password"],
-// });
 const User = mongoose.model("User", userSchema);
 
 app.get("/", (req, res) => {
@@ -50,7 +36,7 @@ app.get("/register", function (req, res) {
 app.post("/register", function (req, res) {
   const newUser = new User({
     username: req.body.username,
-    password: req.body.password,
+    password: md5(req.body.password),
   });
   newUser.save(function (err) {
     if (err) {
@@ -64,7 +50,7 @@ app.post("/register", function (req, res) {
 app.post("/login", function (req, res) {
   User.findOne({ username: req.body.username }, function (err, foundUser) {
     if (foundUser) {
-      if (foundUser.password === req.body.password) {
+      if (foundUser.password === md5(req.body.password)) {
         res.render("secrets");
       }
     } else {
